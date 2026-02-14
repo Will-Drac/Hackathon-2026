@@ -22,13 +22,16 @@ struct vertexShaderOutput {
     let xy = pos[vertexIndex];
     output.position = vec4f(xy, 0.0, 1.0);
     output.uv = (xy + 1.)/2.;
-    output.uv.y = -output.uv.y;
+    output.uv.y = output.uv.y;
 
     return output;
 }
 
+@group(0) @binding(0) var texture: texture_2d<f32>;
+@group(0) @binding(1) var linearSampler: sampler;
+
 @fragment fn fs(i:vertexShaderOutput)->@location(0)vec4f{
-    return vec4f(0, 1, 0, 1);
+    return textureSample(texture, linearSampler, i.uv);
 }
 
 `
