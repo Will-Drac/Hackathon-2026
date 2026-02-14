@@ -2,6 +2,7 @@ export default /*wgsl*/ `
 
 @group(0) @binding(0) var<storage, read> pos: array<vec2f>;
 @group(0) @binding(1) var forcesTexture: texture_storage_2d<rg32float, write>;
+@group(0) @binding(2) var<uniform> lookupTable: array<f32>;
 
 fn dist(a: vec2f, b: vec2f) -> f32 {
     return distance(a, b);
@@ -12,6 +13,8 @@ fn gravity(on: vec2f, by: vec2f) -> vec2f {
 
     return 1.0 * r / pow(dist(by, on), 3.0);
 }
+
+
 
 @compute @workgroup_size(1) fn setup(
     @builtin (global_invocation_id) id: vec3u
