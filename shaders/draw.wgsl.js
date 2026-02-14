@@ -14,7 +14,13 @@ export default /*wgsl*/ `
 
     let thisVel = vel[i];
 
-    textureStore(drawTexture, thisPosI, vec4f(1, 0, 0, 1));
+    if (i == 1) {
+        textureStore(drawTexture, thisPosI, vec4f(0, 0, 1, 1));
+    }
+    else {
+        textureStore(drawTexture, thisPosI, vec4f(1, 1, 1, 1));
+    }
+
 }
 
 
