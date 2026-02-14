@@ -3,7 +3,7 @@ import drawCode from "./shaders/draw.wgsl.js"
 import forcesCode from "./shaders/forces.wgsl.js"
 import particleSetupCode from "./shaders/particleSetup.js"
 
-const NUM_PARTICLES = 256
+const NUM_PARTICLES = 600
 
 async function main() {
     // SETUP
@@ -37,13 +37,13 @@ async function main() {
 
     let particlesPos = device.createBuffer({
         label: "particle position buffer",
-        size: NUM_PARTICLES,
+        size: 8*NUM_PARTICLES,
         usage: GPUBufferUsage.STORAGE
     })
 
     let particlesVel = device.createBuffer({
         label: "particle velocity buffer",
-        size: NUM_PARTICLES,
+        size: 8*NUM_PARTICLES,
         usage: GPUBufferUsage.STORAGE
     })
 
@@ -70,7 +70,7 @@ async function main() {
     const particleSetupEncoder = device.createCommandEncoder({
         label: "particle setup encoder"
     })
-    const particleSetupPass = device.beginComputePass({
+    const particleSetupPass = particleSetupEncoder.beginComputePass({
         label: "particle setup compute pass"
     })
     particleSetupPass.setPipeline(particleSetupPipeline)
@@ -82,31 +82,31 @@ async function main() {
 
 
     //---- forces setup ------//
-    const forcesModule = device.createShaderModule({
-        label: "forces module",
-        code: forcesCode
-    })
+    // const forcesModule = device.createShaderModule({
+    //     label: "forces module",
+    //     code: forcesCode
+    // })
 
-    const forcesPipeline = device.createComputePipeline({
-        layout: "auto",
-        compute: { module: forcesModule }
-    })
+    // const forcesPipeline = device.createComputePipeline({
+    //     layout: "auto",
+    //     compute: { module: forcesModule }
+    // })
 
-    const forcesTexture = device.createTexture({
-        format: "rg32float",
-        dimension: "2d",
-        size: [NUM_PARTICLES, NUM_PARTICLES],
-        usage: GPUTextureUsage.STORAGE_BINDING
-    })
+    // const forcesTexture = device.createTexture({
+    //     format: "rg32float",
+    //     dimension: "2d",
+    //     size: [NUM_PARTICLES, NUM_PARTICLES],
+    //     usage: GPUTextureUsage.STORAGE_BINDING
+    // })
 
-    const forcesBindGroup = device.createBindGroup({
-        layout: forcesPipeline.getBindGroupLayout(0),
-        entries: [
-            { binding: 0, resource: { buffer: particlesPos } },
-            { binding: 1, resource: { buffer: particlesVel } },
-            { binding: 2, resource: forcesTexture.createView() }
-        ]
-    })
+    // const forcesBindGroup = device.createBindGroup({
+    //     layout: forcesPipeline.getBindGroupLayout(0),
+    //     entries: [
+    //         { binding: 0, resource: { buffer: particlesPos } },
+    //         { binding: 1, resource: { buffer: particlesVel } },
+    //         { binding: 2, resource: forcesTexture.createView() }
+    //     ]
+    // })
 
     //---- draw setup ------//
     const drawModule = device.createShaderModule({
@@ -158,7 +158,7 @@ async function main() {
         layout: renderPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: drawTexture.createView() },
-            { binding: 1, resource: linearSampler   }
+            { binding: 1, resource: linearSampler }
         ]
     })
 
@@ -180,24 +180,24 @@ async function main() {
 
     async function render() {
         //---- forces stuff ------//
-        const forcesEncoder = device.createCommandEncoder({
-            label: "forces calculation encoder"
-        })
-        const forcesPass = device.beginComputePass({
-            label: "forces calculation compute pass"
-        })
-        forcesPass.setPipeline(forcesPipeline)
-        forcesPass.setBindGroup(0, forcesBindGroup)
-        forcesPass.dispatchWorkgroups(NUM_PARTICLES, NUM_PARTICLES)
-        forcesPass.end()
-        const forcesCommandBuffer = forcesEncoder.finish()
-        device.queue.submit([forcesCommandBuffer])
+        // const forcesEncoder = device.createCommandEncoder({
+        //     label: "forces calculation encoder"
+        // })
+        // const forcesPass = forcesEncoder.beginComputePass({
+        //     label: "forces calculation compute pass"
+        // })
+        // forcesPass.setPipeline(forcesPipeline)
+        // forcesPass.setBindGroup(0, forcesBindGroup)
+        // forcesPass.dispatchWorkgroups(NUM_PARTICLES, NUM_PARTICLES)
+        // forcesPass.end()
+        // const forcesCommandBuffer = forcesEncoder.finish()
+        // device.queue.submit([forcesCommandBuffer])
 
         //---- draw stuff ------//
         const drawEncoder = device.createCommandEncoder({
             label: "draw encoder"
         })
-        const drawPass = device.beginComputePass({
+        const drawPass = drawEncoder.beginComputePass({
             label: "draw compute pass"
         })
         drawPass.setPipeline(drawPipeline)
