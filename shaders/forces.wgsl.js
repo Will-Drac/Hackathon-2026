@@ -4,6 +4,7 @@ export default /*wgsl*/ `
 @group(0) @binding(1) var<storage, read> vel: array<vec2f>;
 @group(0) @binding(2) var forcesTextureX: texture_storage_2d<r32float, write>;
 @group(0) @binding(3) var forcesTextureY: texture_storage_2d<r32float, write>;
+@group(0) @binding(2) var<uniform> lookupTable: array<f32>;
 
 fn dist(a: vec2f, b: vec2f) -> f32 {
     if (a.x == b.x && a.y == b.y) {return 10000000.0;}
@@ -25,6 +26,8 @@ fn drag(on: vec2f, by: vec2f, velOn: vec2f, velBy: vec2f) -> vec2f {
         return vec2f(0);
     }
 }
+
+
 
 @compute @workgroup_size(1) fn setup(
     @builtin (global_invocation_id) id: vec3u

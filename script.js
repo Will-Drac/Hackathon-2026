@@ -7,6 +7,7 @@ import forcesCode from "./shaders/forces.wgsl.js"
 import clearCode from "./shaders/clear.wgsl.js"
 import particleSetupCode from "./shaders/particleSetup.js"
 
+import Lookup from "./lookuptable.js"
 const NUM_PARTICLES = 400
 
 async function main() {
@@ -234,7 +235,7 @@ async function main() {
 
     //---- render setup ------//
     const renderModule = device.createShaderModule({
-        label: "render module",
+        label:"render module",
         code: renderCode
     })
 
@@ -250,14 +251,7 @@ async function main() {
         }
     })
 
-    const renderBindGroup = device.createBindGroup({
-        layout: renderPipeline.getBindGroupLayout(0),
-        entries: [
-            { binding: 0, resource: drawTexture.createView() },
-            { binding: 1, resource: linearSampler }
-        ]
-    })
-
+    
     const renderPassDescriptor = {
         label: "render pass",
         colorAttachments: [
@@ -272,6 +266,20 @@ async function main() {
 
     //----           ------//
 
+
+    const lookup = new Lookup(512);
+
+    const lookupTable = device.createBuffer({
+        size: lookup.size,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const bindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 2, resource: lookupTable },
+        ],
+      });
 
 
     async function render() {
@@ -366,7 +374,7 @@ async function main() {
         })
         const renderPass = renderEncoder.beginRenderPass(renderPassDescriptor)
         renderPass.setPipeline(renderPipeline)
-        renderPass.setBindGroup(0, renderBindGroup)
+        // renderPass.setBindGroup(0, renderBindGroup)
         renderPass.draw(6)
         renderPass.end()
         const renderCommandBuffer = renderEncoder.finish()
