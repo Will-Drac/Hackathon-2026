@@ -68,7 +68,7 @@ fn repulsion(on: vec2f, by: vec2f) -> vec2f {
 
     let centerForce = gravity(on, vec2f(300));
 
-    let force = 15 * gravity(on, by) + 0.1 * drag(on, by, vel[id.y], vel[id.x]) + 12 * repulsion(on, by) + centerForce;
+    let force = 25 * gravity(on, by) + 0.5 * drag(on, by, vel[id.y], vel[id.x]) + 12 * repulsion(on, by) + centerForce;
 
     textureStore(forcesTextureX, id.xy, vec4f(force.x));
     textureStore(forcesTextureY, id.xy, vec4f(force.y));
