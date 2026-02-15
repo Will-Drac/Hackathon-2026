@@ -6,9 +6,16 @@
     <title>Document</title>
     <script src="script.js" type="module"></script>
     <script src="lookuptable.js" type="module"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bentham&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="mainCanvas" width="600" height="600"></canvas>
+    <h1>Ten&#8596Square: A Non-Standard Universe</h1>
+    <div id="simulation">
+        <canvas id="mainCanvas" width="600" height="600"></canvas>
+        <button onclick="window.location.reload()">Reset simulation</button>
+    </div>
 </body>
 </html>

@@ -1,3 +1,26 @@
-canvas {
-    /* filter: blur(2px) brightness(5)  */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center; 
+    flex-direction: column;
+    background-color: #222;
+    font-family: "Bentham", serif;
 }
+
+#simulation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+}
+
+h1 {
+    color: #eee
+}
+
+canvas {
+    margin: 1em;
+    /* filter: blur(2px) brightness(5)  */ 
+}
+
+
