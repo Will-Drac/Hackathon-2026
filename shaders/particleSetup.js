@@ -3,6 +3,8 @@ export default /*wgsl*/ `
 @group(0) @binding(0) var<storage, read_write> pos: array<vec2f>;
 @group(0) @binding(1) var<storage, read_write> vel: array<vec2f>;
 
+const seed = _SEED;
+
 fn hash11(n: u32) -> u32 {
     var h = n * 747796405u + 2891336453u;
     h = ((h >> ((h >> 28u) + 4u)) ^ h) * 277803737u;
@@ -26,14 +28,8 @@ fn randomIndex(i: u32) -> vec2f {
     let i = id.x;
     let fi = f32(i);
     
-    // pos[i] = randomIndex(i)*600;
-
-    // let fi = f32(i);
-    // pos[i] = fi * vec2f(sin(fi), cos(fi)) + vec2f(300, 300);
-
-    pos[i] = vec2f(20*(fi%20), floor(fi/20)*20);
-    
-    vel[i] = vec2f(0);
+    pos[i] = randomIndex(i + seed)*600;
+    vel[i] = (randomIndex(i + seed + 100)-vec2f(0.5))*100;
 }
 
 `

@@ -7,7 +7,7 @@ export default /*wgsl*/ `
 ) {
     let i = id.xy;
 
-    textureStore(texture, i, vec4f(0.1, 0.1, 0.1, 1));
+    textureStore(texture, i, vec4f(0, 0, 0, 1));
 }
 
 `

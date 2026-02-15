@@ -2,13 +2,16 @@ import renderCode from "./shaders/render.wgsl.js"
 import drawCode from "./shaders/draw.wgsl.js"
 import updateVelocityCode from "./shaders/updateVelocities.wgsl.js"
 import updatePositionCode from "./shaders/updatePositions.wgsl.js"
+import sumCode from "./shaders/sum.wgsl.js"
 import netForcesCode from "./shaders/netForces.wgsl.js"
 import forcesCode from "./shaders/forces.wgsl.js"
 import clearCode from "./shaders/clear.wgsl.js"
 import particleSetupCode from "./shaders/particleSetup.js"
 
 import Lookup from "./lookuptable.js"
-const NUM_PARTICLES = 400
+
+const NUM_PARTICLES = 3125
+const NEAREST_POW_2 = 2 ** (Math.log2(NUM_PARTICLES))
 
 async function main() {
     // SETUP
@@ -61,7 +64,7 @@ async function main() {
 
     const particleSetupModule = device.createShaderModule({
         label: "particle setup module",
-        code: particleSetupCode
+        code: particleSetupCode.replace("_SEED", Math.floor(Date.now() % 10000))
     })
 
     const particleSetupPipeline = device.createComputePipeline({
@@ -111,6 +114,16 @@ async function main() {
     })
 
     //---- forces setup ------//
+
+
+    const lookup = new Lookup(512)
+
+    const lookupTable = device.createBuffer({
+        size: 4 * lookup.size,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    })
+    device.queue.writeBuffer(lookupTable, 0, lookup.lookup)
+
     const forcesModule = device.createShaderModule({
         label: "forces module",
         code: forcesCode
@@ -140,29 +153,29 @@ async function main() {
             { binding: 0, resource: { buffer: particlesPos } },
             { binding: 1, resource: { buffer: particlesVel } },
             { binding: 2, resource: forcesTextureX.createView() },
-            { binding: 3, resource: forcesTextureY.createView() }
+            { binding: 3, resource: forcesTextureY.createView() },
+            { binding: 4, resource: { buffer: lookupTable } }
         ]
     })
 
-    //---- net forces setup ------//
-    const netForcesModule = device.createShaderModule({
-        label: "net forces module",
-        code: netForcesCode
+    //---- sum forces setup ------//
+    const sumModule = device.createShaderModule({
+        label: "sum forces module",
+        code: sumCode
     })
 
-    const netForcesPipeline = device.createComputePipeline({
+    const sumPipeline = device.createComputePipeline({
         layout: "auto",
-        compute: { module: netForcesModule }
+        compute: { module: sumModule }
     })
 
-    // const netForcesUniformArray = new Uint32Array(1)
     const netForcesUniformBuffer = device.createBuffer({
         size: 4,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     })
 
-    const netForcesBindGroup = device.createBindGroup({
-        layout: netForcesPipeline.getBindGroupLayout(0),
+    const sumBindGroup = device.createBindGroup({
+        layout: sumPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: forcesTextureX.createView() },
             { binding: 1, resource: forcesTextureY.createView() },
@@ -227,15 +240,15 @@ async function main() {
         layout: drawPipeline.getBindGroupLayout(0),
         entries: [
             { binding: 0, resource: { buffer: particlesPos } },
-            { binding: 1, resource: { buffer: particlesVel } },
-            { binding: 2, resource: drawTexture.createView() }
+            // { binding: 1, resource: { buffer: particlesVel } },
+            { binding: 1, resource: drawTexture.createView() }
         ]
     })
 
 
     //---- render setup ------//
     const renderModule = device.createShaderModule({
-        label:"render module",
+        label: "render module",
         code: renderCode
     })
 
@@ -251,7 +264,14 @@ async function main() {
         }
     })
 
-    
+    const renderBindGroup = device.createBindGroup({
+        layout: renderPipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: drawTexture.createView() },
+            { binding: 1, resource: linearSampler }
+        ]
+    })
+
     const renderPassDescriptor = {
         label: "render pass",
         colorAttachments: [
@@ -265,21 +285,6 @@ async function main() {
     }
 
     //----           ------//
-
-
-    const lookup = new Lookup(512);
-
-    const lookupTable = device.createBuffer({
-        size: lookup.size,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    const bindGroup = device.createBindGroup({
-        layout: renderPipeline.getBindGroupLayout(0),
-        entries: [
-          { binding: 2, resource: lookupTable },
-        ],
-      });
 
 
     async function render() {
@@ -309,25 +314,44 @@ async function main() {
         device.queue.submit([forcesCommandBuffer])
 
         //---- net forces stuff ------//
-        const netForcesEncoder = device.createCommandEncoder({
-            label: "net forces encoder"
-        })
-        const netForcesPass = netForcesEncoder.beginComputePass()
-        netForcesPass.setPipeline(netForcesPipeline)
-        netForcesPass.setBindGroup(0, netForcesBindGroup)
-        const numSteps = Math.ceil(Math.log2(NUM_PARTICLES))
-        for (let i = 0; i < numSteps; i++) {
-            const thisStride = 2 ** i
-            const numWorkgroups = Math.ceil(NUM_PARTICLES / (2 * thisStride))
+        // const netForcesEncoder = device.createCommandEncoder({
+        //     label: "net forces encoder"
+        // })
+        // const netForcesPass = netForcesEncoder.beginComputePass()
+        // netForcesPass.setPipeline(netForcesPipeline)
+        // netForcesPass.setBindGroup(0, netForcesBindGroup)
 
+        // const numSteps = Math.ceil(Math.log2(NUM_PARTICLES))
+        // for (let i = 0; i < numSteps; i++) {
+        //     const thisStride = 2 ** i
+        //     const numWorkgroups = Math.ceil(NUM_PARTICLES / (2 * thisStride))
+
+        //     const stride = new Uint32Array(1)
+        //     stride[0] = thisStride
+        //     device.queue.writeBuffer(netForcesUniformBuffer, 0, stride)
+        //     netForcesPass.dispatchWorkgroups(numWorkgroups, NUM_PARTICLES)
+        // }
+
+        // netForcesPass.end()
+        // const netForcesCommandBuffer = netForcesEncoder.finish()
+        // device.queue.submit([netForcesCommandBuffer])
+
+        //---- sum forces stuff ----//
+        const sumEncoder = device.createCommandEncoder({
+            label: "sum encoder"
+        })
+        const sumPass = sumEncoder.beginComputePass()
+        sumPass.setPipeline(sumPipeline)
+        sumPass.setBindGroup(0, sumBindGroup)
+        for (let i = 0; i < 5; i++) {
             const stride = new Uint32Array(1)
-            stride[0] = thisStride
+            stride[0] = i
             device.queue.writeBuffer(netForcesUniformBuffer, 0, stride)
-            netForcesPass.dispatchWorkgroups(numWorkgroups, NUM_PARTICLES)
+            sumPass.dispatchWorkgroups(NUM_PARTICLES / Math.pow(5, i + 1), NUM_PARTICLES)
         }
-        netForcesPass.end()
-        const netForcesCommandBuffer = netForcesEncoder.finish()
-        device.queue.submit([netForcesCommandBuffer])
+        sumPass.end()
+        const sumCommandBuffer = sumEncoder.finish()
+        device.queue.submit([sumCommandBuffer])
 
         //---- update velocity stuff ----//
         const updateVelEncoder = device.createCommandEncoder({
@@ -374,7 +398,7 @@ async function main() {
         })
         const renderPass = renderEncoder.beginRenderPass(renderPassDescriptor)
         renderPass.setPipeline(renderPipeline)
-        // renderPass.setBindGroup(0, renderBindGroup)
+        renderPass.setBindGroup(0, renderBindGroup)
         renderPass.draw(6)
         renderPass.end()
         const renderCommandBuffer = renderEncoder.finish()
